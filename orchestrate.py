@@ -125,7 +125,7 @@ def train_best_model(
     return markdown__rmse_report
 
 @task(name="Send email notification")
-def email_send_message(email_addresses: list[str], msg: str):
+def send_notification_email(email_addresses: list[str], msg: str):
     email_server_credentials = EmailServerCredentials.load("test-email-server")
     for email in email_addresses:
         subject = email_send_message.with_options(name=f"email {email}").submit(
@@ -158,7 +158,7 @@ def main_flow(
     markdown_report = train_best_model(X_train, X_val, y_train, y_val, dv)
 
     # Send notification
-    email_send_message(email_addresses, msg=markdown_report)
+    send_notification_email(email_addresses, msg=markdown_report)
 
 
 if __name__ == "__main__":
