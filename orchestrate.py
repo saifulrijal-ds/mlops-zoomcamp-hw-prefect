@@ -11,7 +11,7 @@ import xgboost as xgb
 from prefect import flow, task
 from prefect.artifacts import create_markdown_artifact
 from datetime import date
-
+from prefect_email import EmailServerCredentials, email_send_message
 
 @task(retries=3, retry_delay_seconds=2, name="Read taxi data")
 def read_data(filename: str) -> pd.DataFrame:
@@ -71,7 +71,7 @@ def train_best_model(
     y_train: np.ndarray,
     y_val: np.ndarray,
     dv: sklearn.feature_extraction.DictVectorizer,
-) -> None:
+) -> str:
     """train a model with best hyperparams and write everything out"""
 
     with mlflow.start_run():
@@ -122,13 +122,24 @@ def train_best_model(
         |   {date.today()}  |   {rmse:.2f}
         """
         create_markdown_artifact(key="rmse-report", markdown=markdown__rmse_report)
-    return None
+    return markdown__rmse_report
 
+@task(name="Send email notification")
+def email_send_message(email_addresses: list[str], msg: str):
+    email_server_credentials = EmailServerCredentials.load("test-email-server")
+    for email in email_addresses:
+        subject = email_send_message.with_options(name=f"email {email}").submit(
+            email_server_credentials=email_server_credentials,
+            subject="Example Notification using Gmail",
+            msg=msg,
+            email_to=email
+        )
 
 @flow
 def main_flow(
     train_path: str = "./data/green_tripdata_2021-01.parquet",
     val_path: str = "./data/green_tripdata_2021-02.parquet",
+    email_addresses: list[str] = ["saifulrijal.ds@gmail.com"]
 ) -> None:
     """The main training pipeline"""
 
@@ -144,7 +155,10 @@ def main_flow(
     X_train, X_val, y_train, y_val, dv = add_features(df_train, df_val)
 
     # Train
-    train_best_model(X_train, X_val, y_train, y_val, dv)
+    markdown_report = train_best_model(X_train, X_val, y_train, y_val, dv)
+
+    # Send notification
+    email_send_message(email_addresses, msg=markdown_report)
 
 
 if __name__ == "__main__":
