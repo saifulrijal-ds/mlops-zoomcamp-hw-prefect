@@ -124,7 +124,7 @@ def train_best_model(
         create_markdown_artifact(key="rmse-report", markdown=markdown__rmse_report)
     return markdown__rmse_report
 
-@task(name="Send email notification")
+@flow
 def send_notification_email(email_addresses: list[str], msg: str):
     email_server_credentials = EmailServerCredentials.load("test-email-server")
     for email in email_addresses:
