@@ -121,7 +121,7 @@ def train_best_model(
         |:------------:|:--------:|
         |   {date.today()}  |   {rmse:.2f}
         """
-        create_markdown_artifact("rmse_report.md", markdown__rmse_report)
+        create_markdown_artifact(key="rmse-report", markdown=markdown__rmse_report)
     return None
 
 
